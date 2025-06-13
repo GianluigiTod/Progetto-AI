@@ -17,13 +17,16 @@ def generate_plan_steps(goal, obstacle, lore, depth=3):
 
 def generate_pddl_actions(plan_steps: list[str]) -> str:
     # Traduci ogni step in PDDL
-    pddl_actions = []
+    '''pddl_actions = []
     for step in plan_steps:
         pddl_actions.append(convert_to_pddl(step, pddl_actions))
-    return "\n".join(pddl_actions)
+    '''
+    steps_text = "\n".join([f"{i+1}. {step}" for i, step in enumerate(plan_steps)])
+    pddl_actions = convert_to_pddl(steps_text)
+    return pddl_actions
 
 
-def convert_to_pddl(step: str, previous_actions: list[str]) -> str:
+def convert_to_pddl(steps: str) -> str:
     examples = [
         {
             "input": "Supera il drago con un incantesimo",
@@ -48,23 +51,29 @@ def convert_to_pddl(step: str, previous_actions: list[str]) -> str:
         }
     ]
 
-    # Costruisci la stringa con le azioni PDDL già generate
-    context_actions = "\n\n".join(previous_actions) if previous_actions else "(nessuna azione precedente)"
-    
+
+
     # Costruisci gli esempi come stringa
     examples_as_string = "\n\n".join(
         f"Input: {ex['input']}\nOutput:\n{ex['output']}" for ex in examples
     )
 
     # Correggi il prompt template per usare le variabili corrette
-    prompt_text = """Sei un assistente che converte descrizioni di azioni in azioni PDDL. Ecco le azioni già generate finora:
-{context_actions}
+    prompt_text = f"""Sei un assistente che converte descrizioni di azioni in azioni PDDL.
 
-Di seguito alcuni esempi di input/output per farti capire lo stile richiesto:
-{examples}
+    ESEMPI:
+    {examples_as_string}
 
-Ora converti la seguente azione descritta in linguaggio naturale in una nuova azione PDDL coerente con quelle sopra. Definisci :action, :parameters, :precondition e :effect.
-Azione da convertire: {step}"""
+    AZIONI DA CONVERTIRE:
+    {steps}
+
+    Converti TUTTE le azioni elencate sopra in formato PDDL.
+    - Una azione PDDL per ogni riga numerata
+    - Mantieni coerenza tra le azioni (stessi tipi, predicati compatibili)
+    - NON numerare le azioni PDDL nel risultato
+    - Separa ogni azione con una riga vuota
+
+    Rispondi SOLO con le azioni PDDL."""
 
     prompt = ChatPromptTemplate.from_messages([
         ("system", "Sei un esperto nella scrittura di azioni PDDL coerenti."),
@@ -75,8 +84,7 @@ Azione da convertire: {step}"""
 
     # Correggi l'invocazione per usare le variabili del template
     response = chain.invoke({
-        "context_actions": context_actions, 
-        "step": step, 
+        "steps": steps,
         "examples": examples_as_string
     })
     return response.content.strip()
