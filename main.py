@@ -16,20 +16,25 @@ class GameState(TypedDict):
     lore_hints: str
     story: str
     pddl: PDDL
+    action_steps: str
     depth: int
 
 # 2. Nodo: genera la storia da goal/ostacolo/lore
-def story_node(state: GameState) -> dict:
-    #story = generate_story(state["goal"], state["obstacle"], state.get("lore_hints", ""))
-    story= generate_story(state["pddl"], state.get("lore_hints", ""))
-    return {"story": story}
+
 
 # 3. Nodo: genera le azioni PDDL e salva su file
 def pddl_node(state: GameState) -> dict:
     steps = generate_plan_steps(state["goal"], state["obstacle"], state["lore_hints"], state["depth"])
+    print(steps)
     pddl = generate_pddl_actions(steps)
-    save_to_pddl_file(pddl, "./pddl/domain.pddl")
+    state["action_steps"]=steps
+    save_to_pddl_file(pddl, "domain.pddl")
     return {"pddl": pddl}
+
+def story_node(state: GameState) -> dict:
+    #story = generate_story(state["goal"], state["obstacle"], state.get("lore_hints", ""))
+    story= generate_story(state["action_steps"], state.get("lore_hints", ""))
+    return {"story": story}
 
 # 4. Costruiamo il grafo
 graph_builder = (
@@ -57,6 +62,7 @@ if __name__ == "__main__":
         "lore_hints": lore,
         "depth": depth,
         "story": "",
+        "action_steps": "",
         "pddl": ""
     }
 
