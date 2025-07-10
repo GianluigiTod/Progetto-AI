@@ -1,0 +1,20 @@
+(define (problem tree_rescue)
+(:domain tree_rescue_domain)
+(:objects
+)
+(:init
+(at boy ground)
+(at cat tree)
+(alive boy)
+(alive cat)
+(connected tree ground)
+(on-tree cat)
+(on-ground ground)
+(has boy ladder)
+(at ladder ground)
+)
+(:goal (and
+(at cat ground)
+(on-ground cat)
+))
+)

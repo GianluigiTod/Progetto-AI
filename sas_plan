@@ -1,0 +1,3 @@
+(move mermaid location_sea location_cave)
+(rescue mermaid knight location_cave)
+; cost = 2 (unit cost)
