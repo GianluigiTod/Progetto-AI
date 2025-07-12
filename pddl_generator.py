@@ -1,10 +1,9 @@
-from langchain.prompts import ChatPromptTemplate
+'''from langchain.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
 from pathlib import Path
 import subprocess
 import re
 import os
-import json
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 import yaml
@@ -1973,4 +1972,4 @@ def load_lore_from_file(filename: str) -> LoreDocument:
 
 # Aggiunta per esecuzione diretta
 if __name__ == "__main__":
-    main()
+    main()'''

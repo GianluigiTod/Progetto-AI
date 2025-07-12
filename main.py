@@ -1,77 +1,69 @@
-# main.py
-# Punto d'ingresso: crea un grafo LangGraph che collega story e PDDL
+from interactive_story_generator import InteractiveStoryGenerator
+from utils import load_lore_from_file, setup_interactive_interface
 
-from story_generator import generate_story
-from pddl_generator import *
-from langgraph.graph import StateGraph, START
-from typing_extensions import TypedDict
-from langchain.chains import LLMChain
+def main():
+    """Funzione principale per l'esecuzione interattiva"""
+    
+    if not setup_interactive_interface():
+        return
+    
+    # Crea il generatore
+    generator = InteractiveStoryGenerator()
+    
+    print("🎯 Modalità di utilizzo:")
+    print("1. Creazione interattiva del lore")
+    print("2. Utilizzo di esempio predefinito")
+    print("3. Caricamento da file YAML")
+    
+    mode = input("\nScegli modalità [1-3]: ")
+    
+    try:
+        if mode == "1":
+            # Modalità interattiva
+            lore_doc = generator.create_lore_document(interactive=True)
+        elif mode == "2":
+            # Esempio predefinito
+            lore_doc = generator.create_lore_document(interactive=False)
+        elif mode == "3":
+            # Caricamento da file
+            filename = input("Nome del file YAML: ")
+            lore_doc = load_lore_from_file(filename)
+        else:
+            print("Modalità non valida, uso esempio predefinito")
+            lore_doc = generator.create_lore_document(interactive=False)
+        
+        print(f"\n✅ Lore creato: {lore_doc.quest_description[:50]}...")
+        
+        # Genera PDDL iniziale
+        domain, problem = generator.generate_initial_pddl(lore_doc)
+        
+        print("\n🔧 Avvio processo di validazione e refinement...")
+        
+        # Processo di validazione e refinement
+        result = generator.validate_and_refine(max_iterations=3)
+        
+        if result["success"]:
+            print("\n🎉 GENERAZIONE COMPLETATA CON SUCCESSO!")
+            print(f"✅ Iterazioni necessarie: {result['iterations']}")
+            print(f"✅ Lunghezza piano: {len(result.get('plan', []))}")
+            
+            # Salva i file finali
+            save_name = input("\nNome base per i file (default: 'final'): ") or "final"
+            generator.save_final_files(result, save_name)
+            
+        else:
+            print("\n❌ Generazione fallita")
+            print("I file parziali sono comunque disponibili per ispezione")
+            
+            # Salva comunque i file per debug
+            generator.save_final_files(result, "debug")
+    
+    except KeyboardInterrupt:
+        print("\n\n⏹️ Processo interrotto dall'utente")
+    except Exception as e:
+        print(f"\n❌ Errore inaspettato: {e}")
+        import traceback
+        traceback.print_exc()
 
-# 1. Definiamo lo schema dello stato che passerà tra i nodi
-type PDDL = str
-
-class GameState(TypedDict):
-    goal: str
-    obstacle: str
-    lore_hints: str
-    story: str
-    pddl: PDDL
-    action_steps: str
-    depth: int
-
-# 2. Nodo: genera la storia da goal/ostacolo/lore
-
-
-# 3. Nodo: genera le azioni PDDL e salva su file
-def pddl_node(state: GameState) -> dict:
-    steps = generate_plan_steps(state["goal"], state["obstacle"], state["lore_hints"], state["depth"])
-    print(steps)
-    pddl = generate_pddl_actions(steps)
-    state["action_steps"]=steps
-    save_to_pddl_file(pddl, "domain.pddl")
-    return {"pddl": pddl}
-
-def story_node(state: GameState) -> dict:
-    #story = generate_story(state["goal"], state["obstacle"], state.get("lore_hints", ""))
-    story= generate_story(state["action_steps"], state.get("lore_hints", ""))
-    return {"story": story}
-
-# 4. Costruiamo il grafo
-graph_builder = (
-    StateGraph(GameState)
-    .add_node("generate_story", story_node)
-    .add_node("generate_pddl", pddl_node)
-    .add_edge(START, "generate_pddl")
-    .add_edge("generate_pddl", "generate_story")
-)
-
-
-graph=graph_builder.compile()
-
-# 5. Input da terminale e invocazione del grafo
 if __name__ == "__main__":
-    goal = input("Obiettivo della missione: ")
-    obstacle = input("Ostacolo principale: ")
-    lore = input("Lore aggiuntiva (opzionale): ")
-    depth_input = input("Depth della storia (opzionale): ")
-    depth = int(depth_input) if depth_input.strip().isdigit() else 3
-
-    input_state: GameState = {
-        "goal": goal,
-        "obstacle": obstacle,
-        "lore_hints": lore,
-        "depth": depth,
-        "story": "",
-        "action_steps": "",
-        "pddl": ""
-    }
-
-    result = graph.invoke(input_state)
-
-    print("\n--- Azioni PDDL ---\n")
-    print(result["pddl"])
-
-
-    print("\n--- Storia generata ---\n")
-    print(result["story"])
-
+    main()

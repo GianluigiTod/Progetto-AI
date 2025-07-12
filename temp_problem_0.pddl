@@ -1,86 +1,102 @@
-(define (domain princess_rescue)
-  (:requirements :strips :typing)
-  (:types
-    character location item - object
-    hero princess dragon guard - character
-    weapon shield potion - item
-  )
-  (:predicates
-    (at ?x - object ?l - location)
-    (has ?c - character ?i - item)
-    (alive ?c - character)
-    (imprisoned ?p - princess)
-    (rescued ?p - princess)
-    (guarded ?l - location)
-    (connected ?l1 - location ?l2 - location)
-  )
-  (:action move
-    :parameters (?c - character ?from - location ?to - location)
-    :precondition (and (at ?c ?from) (connected ?from ?to) (alive ?c) (not (guarded ?to)))
-    :effect (and (not (at ?c ?from)) (at ?c ?to))
-  )
-  (:action take
-    :parameters (?c - character ?i - item ?l - location)
-    :precondition (and (at ?c ?l) (at ?i ?l) (alive ?c))
-    :effect (and (has ?c ?i) (not (at ?i ?l)))
-  )
-  (:action equip
-    :parameters (?c - character ?w - weapon)
-    :precondition (and (has ?c ?w) (alive ?c))
-    :effect (equipped ?c ?w)
-  )
-  (:action fight
-    :parameters (?h - hero ?d - dragon ?w - weapon ?l - location)
-    :precondition (and (at ?h ?l) (at ?d ?l) (equipped ?h ?w) (alive ?h) (alive ?d))
-    :effect (and (defeated ?d) (not (alive ?d)))
-  )
-  (:action rescue
-    :parameters (?h - hero ?p - princess ?l - location)
-    :precondition (and (at ?h ?l) (at ?p ?l) (alive ?h) (imprisoned ?p) (not (guarded ?l)))
-    :effect (and (rescued ?p) (not (imprisoned ?p)))
-  )
-  (:action guard
-    :parameters (?g - guard ?l - location)
-    :precondition (and (at ?g ?l) (alive ?g))
-    :effect (guarded ?l)
-  )
-)
+(define (problem dragon_rescue)
+     (:objects
+       hero1 - hero
+       princess1 - princess
+       dragon1 - drago
+       sword1 - spada
+       key1 - chiave
+       treasure1 - tesoro
+       village castle tower prison - location
+     )
+     (:init
+       (at hero1 village)
+       (at princess1 prison)
+       (at dragon1 tower)
+       (at sword1 village)
+       (at key1 forest)
+       (at treasure1 castle)
 
-PROBLEMA:
-(define (problem princess_rescue_quest)
-  (:domain princess_rescue)
-  (:objects
-    hero1 - hero
-    princess1 - princess
-    dragon1 - dragon
-    guard1 - guard
-    sword1 - weapon
-    shield1 - shield
-    potion1 - potion
-    village castle tower treasure - location
-  )
-  (:init
-    (at hero1 village)
-    (at princess1 castle)
-    (at dragon1 tower)
-    (at sword1 village)
-    (at shield1 village)
-    (at potion1 village)
-    (at guard1 castle)
-    (alive hero1)
-    (alive dragon1)
-    (imprisoned princess1)
-    (guarded castle)
-    (locked treasure)
-    (hidden treasure)
-    (connected village castle)
-    (connected castle tower)
-    (connected tower village)
-  )
-  (:goal (and
-    (rescued princess1)
-    (at princess1 village)
-    (has hero1 treasure)
-    (defeated dragon1)
-  ))
-)
+       (alive hero1)
+       (imprisoned princess1)
+       (alive dragon1)
+       (locked prison)
+       (hidden treasure1)
+
+       (connected village forest)
+       (connected forest village)
+       (connected forest castle)
+       (connected castle tower)
+       (connected tower prison)
+       (connected prison tower)
+     )
+     (:goal (and
+             (rescued princess1)
+             (at princess1 village)
+             (defeated dragon1)
+             (has hero1 treasure1)
+           ))
+     (:action take-key
+       :parameters (?x - hero ?y - key)
+       :precondition (and
+                      (at ?x ?y)
+                      (at ?y forest)
+                      (alive ?x)
+                    )
+       :effect (and
+                (at ?x ?y)
+                (not (at ?y forest))
+                (at ?x ?y)
+                (not (locked ?y))
+              ))
+     (:action open-door
+       :parameters (?x - hero ?y - location)
+       :precondition (and
+                      (at ?x ?y)
+                      (alive ?x)
+                      (locked ?y)
+                    )
+       :effect (and
+                (at ?x ?y)
+                (not (locked ?y))
+              ))
+     (:action fight-dragon
+       :parameters (?x - hero)
+       :precondition (and
+                      (at ?x tower)
+                      (alive ?x)
+                      (alive dragon1)
+                    )
+       :effect (if (not (defeated dragon1))
+                   (and
+                     (at ?x tower)
+                     (not (alive dragon1))
+                     (defeated dragon1))
+                   (and
+                     (at ?x village)
+                     (not (alive hero1))
+                     (defeated dragon1))))
+     (:action rescue-princess
+       :parameters (?x - hero)
+       :precondition (and
+                      (at ?x prison)
+                      (alive ?x)
+                      (rescued princess1)
+                    )
+       :effect (and
+                (at ?x village)
+                (not (imprisoned princess1))
+                (at princess1 village)
+              ))
+     (:action get-treasure
+       :parameters (?x - hero)
+       :precondition (and
+                      (at ?x castle)
+                      (alive ?x)
+                      (has hero1 sword1)
+                    )
+       :effect (and
+                (at ?x castle)
+                (not (hidden treasure1))
+                (has hero1 treasure1)
+              ))
+   )
