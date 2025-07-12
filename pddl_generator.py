@@ -1731,7 +1731,7 @@ def run_fast_downward(domain_file: str, problem_file: str, timeout: int = 30) ->
         
         # Comando Fast Downward (assumendo sia installato)
         cmd = [
-            "python", "C:\\Users\\Alessandro\\fast_downward\\downward\\fast-downward.py",
+            "python", "C:\\Users\\Salva\\downward\\fast-downward.py",
             "--plan-file", "sas_plan",
             domain_file,
             problem_file,

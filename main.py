@@ -1,77 +1,32 @@
 # main.py
-# Punto d'ingresso: crea un grafo LangGraph che collega story e PDDL
+from story_generator import InteractiveStoryGenerator
 
-from story_generator import generate_story
-from pddl_generator import *
-from langgraph.graph import StateGraph, START
-from typing_extensions import TypedDict
-from langchain.chains import LLMChain
+def main():
+    print("\U0001F3AE GENERATORE INTERATTIVO DI STORIE PDDL")
+    print("=" * 50 + "\n")
+    generator = InteractiveStoryGenerator()
 
-# 1. Definiamo lo schema dello stato che passerà tra i nodi
-type PDDL = str
+    print("\U0001F3AF Modalità di utilizzo:")
+    print("1. Creazione interattiva del lore")
+    print("2. Utilizzo di esempio predefinito")
 
-class GameState(TypedDict):
-    goal: str
-    obstacle: str
-    lore_hints: str
-    story: str
-    pddl: PDDL
-    action_steps: str
-    depth: int
+    scelta = input("\nScegli modalità [1-2]: ").strip()
+    if scelta == "1":
+        generator.create_lore_document(interactive=True)
+    else:
+        generator.create_lore_document(interactive=False)
 
-# 2. Nodo: genera la storia da goal/ostacolo/lore
+    print(f"\n\u2705 Lore creato: {generator.current_lore.quest_description[:60]}...")
 
-
-# 3. Nodo: genera le azioni PDDL e salva su file
-def pddl_node(state: GameState) -> dict:
-    steps = generate_plan_steps(state["goal"], state["obstacle"], state["lore_hints"], state["depth"])
-    print(steps)
-    pddl = generate_pddl_actions(steps)
-    state["action_steps"]=steps
-    save_to_pddl_file(pddl, "domain.pddl")
-    return {"pddl": pddl}
-
-def story_node(state: GameState) -> dict:
-    #story = generate_story(state["goal"], state["obstacle"], state.get("lore_hints", ""))
-    story= generate_story(state["action_steps"], state.get("lore_hints", ""))
-    return {"story": story}
-
-# 4. Costruiamo il grafo
-graph_builder = (
-    StateGraph(GameState)
-    .add_node("generate_story", story_node)
-    .add_node("generate_pddl", pddl_node)
-    .add_edge(START, "generate_pddl")
-    .add_edge("generate_pddl", "generate_story")
-)
+    generator.generate_initial_pddl()
+    print("🔧 Avvio processo di validazione e refinement...")
 
 
-graph=graph_builder.compile()
+    success = generator.validate_and_refine()
+    if success:
+        print("\n\U0001F389 Storia generata con successo!")
+    else:
+        print("\n❌ Fallita generazione storia")
 
-# 5. Input da terminale e invocazione del grafo
 if __name__ == "__main__":
-    goal = input("Obiettivo della missione: ")
-    obstacle = input("Ostacolo principale: ")
-    lore = input("Lore aggiuntiva (opzionale): ")
-    depth_input = input("Depth della storia (opzionale): ")
-    depth = int(depth_input) if depth_input.strip().isdigit() else 3
-
-    input_state: GameState = {
-        "goal": goal,
-        "obstacle": obstacle,
-        "lore_hints": lore,
-        "depth": depth,
-        "story": "",
-        "action_steps": "",
-        "pddl": ""
-    }
-
-    result = graph.invoke(input_state)
-
-    print("\n--- Azioni PDDL ---\n")
-    print(result["pddl"])
-
-
-    print("\n--- Storia generata ---\n")
-    print(result["story"])
-
+    main()
