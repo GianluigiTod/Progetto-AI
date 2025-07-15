@@ -1,0 +1,2 @@
+move io  ponte
+take io forcone  ponte

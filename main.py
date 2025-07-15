@@ -3,30 +3,28 @@ from story_generator import InteractiveStoryGenerator
 
 def main():
     print("\U0001F3AE GENERATORE INTERATTIVO DI STORIE PDDL")
-    print("=" * 50 + "\n")
     generator = InteractiveStoryGenerator()
 
-    print("\U0001F3AF Modalità di utilizzo:")
-    print("1. Creazione interattiva del lore")
-    print("2. Utilizzo di esempio predefinito")
+    print("1. Crea nuovo lore")
+    print("2. Usa esempio predefinito")
+    print("3. Carica da YAML")
+    choice = input("Scelta [1-3]: ")
 
-    scelta = input("\nScegli modalità [1-2]: ").strip()
-    if scelta == "1":
+    if choice == '1':
         generator.create_lore_document(interactive=True)
+    elif choice == '3':
+        filename = input("Nome file YAML: ")
+        from lore import LoreDocument
+        generator.current_lore = LoreDocument.from_yaml(filename)
     else:
         generator.create_lore_document(interactive=False)
 
-    print(f"\n\u2705 Lore creato: {generator.current_lore.quest_description[:60]}...")
-
     generator.generate_initial_pddl()
-    print("🔧 Avvio processo di validazione e refinement...")
-
-
     success = generator.validate_and_refine()
     if success:
         print("\n\U0001F389 Storia generata con successo!")
     else:
         print("\n❌ Fallita generazione storia")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -1,10 +1,9 @@
-# story_generator.py
+# interactive_story_generator.py
 from lore import LoreDocument
 from pddl_template_manager import PDDLTemplateManager
 from reflection_agent import ReflectionAgent
-from validation import validate_pddl_syntax, run_fast_downward
 from utils import write_to_file
-import os
+from validation import validate_pddl_syntax, run_fast_downward
 
 class InteractiveStoryGenerator:
     def __init__(self):
@@ -16,79 +15,54 @@ class InteractiveStoryGenerator:
 
     def create_lore_document(self, interactive: bool = True) -> LoreDocument:
         if interactive:
-            print("🎭 CREAZIONE DOCUMENTO DI LORE")
-            quest_description = input("📖 Descrizione della quest: ")
-            world_context = input("🌍 Contesto del mondo: ")
-            branching_min = int(input("Branching min (2-5): "))
-            branching_max = int(input("Branching max (4-10): "))
-            depth_min = int(input("Profondità min (2-8): "))
-            depth_max = int(input("Profondità max (5-15): "))
-            characters = [x.strip() for x in input("Personaggi (virgola): ").split(',')]
-            locations = [x.strip() for x in input("Luoghi (virgola): ").split(',')]
-            items = [x.strip() for x in input("Oggetti (virgola): ").split(',')]
-            constraints = [x.strip() for x in input("Vincoli (virgola): ").split(',')]
+            desc = input("Descrizione della quest: ")
+            ctx = input("Contesto del mondo: ")
+            bf_min, bf_max = int(input("Branching min: ")), int(input("Branching max: "))
+            d_min, d_max = int(input("Depth min: ")), int(input("Depth max: "))
+            chars = input("Personaggi: ").split(',')
+            locs = input("Luoghi: ").split(',')
+            items = input("Oggetti: ").split(',')
+            constr = input("Vincoli: ").split(',')
         else:
-            quest_description = "Un eroe deve salvare una principessa intrappolata nel castello."
-            world_context = "Regno fantasy medievale."
-            branching_min, branching_max = (2, 4)
-            depth_min, depth_max = (2, 6)
-            characters = ["hero", "princess"]
-            locations = ["village", "forest", "castle"]
-            items = ["sword", "key"]
-            constraints = ["il drago deve essere sconfitto"]
+            desc = "Un eroe deve liberare un villaggio infestato da banditi."
+            ctx = "Regno montano con castelli, grotte e accampamenti."
+            bf_min, bf_max = 2, 4
+            d_min, d_max = 3, 7
+            chars = ["hero", "bandit_leader"]
+            locs = ["village", "forest", "camp"]
+            items = ["sword", "map"]
+            constr = []
 
-        self.current_lore = LoreDocument(
-            quest_description,
-            (branching_min, branching_max),
-            (depth_min, depth_max),
-            world_context,
-            characters,
-            locations,
-            items,
-            constraints
-        )
-        self.current_lore.to_yaml("output/final_lore.yaml")
+        self.current_lore = LoreDocument(desc, (bf_min, bf_max), (d_min, d_max), ctx, chars, locs, items, constr)
         return self.current_lore
 
     def generate_initial_pddl(self):
-        print("🏗️ Generazione PDDL iniziale...")
-        domain = self.template_manager.generate_domain(self.current_lore)
-        problem = self.template_manager.generate_problem(self.current_lore)
-        self.current_domain = domain
-        self.current_problem = problem
-        write_to_file(domain, "domain.pddl")
-        write_to_file(problem, "problem.pddl")
-        return domain, problem
+        self.current_domain = self.template_manager.generate_domain(self.current_lore)
+        self.current_problem = self.template_manager.generate_problem(self.current_lore)
+        write_to_file(self.current_domain, "domain.pddl")
+        write_to_file(self.current_problem, "problem.pddl")
 
-    def validate_and_refine(self, max_iterations: int = 3):
-        print("🔍 Inizio processo di validazione e refinement...")
-        for i in range(max_iterations):
-            print(f"\n{'='*50}\n🔄 ITERAZIONE {i+1}/{max_iterations}\n{'='*50}")
-            domain_file = f"temp_domain_{i}.pddl"
-            problem_file = f"temp_problem_{i}.pddl"
-            write_to_file(self.current_domain, domain_file)
-            write_to_file(self.current_problem, problem_file)
-
-            print("📋 Validazione sintattica...")
-            if not validate_pddl_syntax(self.current_domain) or not validate_pddl_syntax(self.current_problem):
-                print("❌ Errori di sintassi rilevati nel PDDL")
+    def validate_and_refine(self, max_iter=3):
+        for i in range(max_iter):
+            print(f"\nITERAZIONE {i+1}")
+            if not (validate_pddl_syntax(self.current_domain) and validate_pddl_syntax(self.current_problem)):
+                print("❌ Sintassi non valida. Provo a correggere...")
+                reflection = self.reflection_agent.analyze_pddl_errors(self.current_domain, self.current_problem, ["Errore sintattico"])
+                print(reflection["suggestions"])
                 continue
 
-            print("🧮 Test di solvibilità tramite planner...")
-            plan = run_fast_downward(domain_file, problem_file, lore=self.current_lore)
+            plan = run_fast_downward("output/domain.pddl", "output/problem.pddl", lore=self.current_lore)
             if plan:
-                print(f"✅ Piano trovato con {len(plan)} azioni!")
-                for action in plan:
-                    print("  ➤", action)
-                write_to_file("\n".join(plan), f"plan_iter_{i}.txt")
+                print(f"✅ Piano trovato con {len(plan)} azioni:")
+                for a in plan:
+                    print(f"  ➤ {a}")
+                write_to_file("\n".join(plan), "plan.txt")
                 return True
-            else:
-                print("❌ Nessun piano trovato")
-                print("🤝 Avvio agent di riflessione per suggerimenti...")
-                suggestions = self.reflection_agent.suggest_improvements(self.current_lore, self.current_domain, self.current_problem)
-                for k, v in suggestions.items():
-                    print(f"{k.replace('_', ' ').capitalize()}: {v}")
-                scelta = input("Accettare suggerimenti e rigenerare? [y/n]: ").lower()
-                if scelta == 'y':
-                    self.generate_initial_pddl()
+
+            print("❌ Nessun piano trovato. Suggerimenti:")
+            suggestion = self.reflection_agent.suggest_improvements(self.current_lore, self.current_domain, self.current_problem)
+            print(suggestion["suggestions"])
+            choice = input("Vuoi rigenerare? [y/n]: ").lower()
+            if choice == 'y':
+                self.generate_initial_pddl()
         return False

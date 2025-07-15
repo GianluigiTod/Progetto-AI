@@ -1,24 +1,20 @@
-;; Problema generato per: devo trafiggere un uomo
 (define (problem generated_problem)
   (:domain generated_domain)
-
-  ;; Oggetti utilizzati nella storia
   (:objects
-    io - character
-    uomo - character
-    coltello - item
-    pizzeria - location
+    hero bandit_leader - character
+    sword map - item
+    village forest camp - location
   )
-
-  ;; Stato iniziale della storia
   (:init
-    (at io pizzeria)
-    (at uomo pizzeria)          ;; Posizione iniziale dei personaggi
-    (at coltello pizzeria)          ;; Posizione iniziale degli oggetti
-             ;; Connessioni tra i luoghi
-    (alive io)  ;; Il protagonista è vivo
+    (at hero village)
+    (at bandit_leader village)
+    (at sword camp)
+    (at map camp)
+    (connected village forest)
+    (connected forest village)
+    (connected forest camp)
+    (connected camp forest)
+    (alive hero)
   )
-
-  ;; Obiettivo finale della storia
-  (:goal (defeated uomo))
+  (:goal (and (not (at ?char_bandit_leader - character ?loc_village - location)) ))
 )

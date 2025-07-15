@@ -1,8 +1,8 @@
-import os
-from pathlib import Path
-import yaml
+# lore.py
 from dataclasses import dataclass, asdict
 from typing import List, Tuple
+import yaml
+import os
 
 @dataclass
 class LoreDocument:
@@ -16,7 +16,7 @@ class LoreDocument:
     constraints: List[str] = None
 
     def to_yaml(self, path: str):
-        os.makedirs(os.path.dirname(path), exist_ok=True)  # <--- fix
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'w', encoding='utf-8') as f:
             yaml.dump(asdict(self), f, allow_unicode=True)
 

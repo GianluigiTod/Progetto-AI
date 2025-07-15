@@ -1,63 +1,64 @@
-# src/validation.py
+# validation.py (run_fast_downward + validate_pddl_syntax)
 import os
-import re
+import subprocess
+from pathlib import Path
 from typing import List, Optional
 from lore import LoreDocument
-from pddl_inferencer import PDDLInferencer
 
 def validate_pddl_syntax(pddl_content: str) -> bool:
-    """Basic check for PDDL formatting correctness."""
+    """Controlla se il contenuto PDDL ha parentesi bilanciate e contiene 'define'."""
     return "(define" in pddl_content and pddl_content.count('(') == pddl_content.count(')')
 
 def run_fast_downward(domain_file: str, problem_file: str, timeout: int = 30, lore: Optional[LoreDocument] = None) -> Optional[List[str]]:
     """
-    Simulated planner that returns a dynamically inferred plan based on the lore and inferred actions.
+    Esegue Fast Downward per risolvere il problema PDDL.
+    Ritorna lista di azioni se successo, None altrimenti.
     """
+    output_dir = Path("output")
+    plan_file = output_dir / "sas_plan"
+
+    domain_path = os.path.abspath(domain_file)
+    problem_path = os.path.abspath(problem_file)
+    fd_script_path = os.path.abspath(os.path.join("fast-downward", "fast-downward.py"))
+
     try:
-        if os.path.exists(domain_file) and os.path.exists(problem_file):
-            if not lore or not lore.characters or not lore.locations:
-                return None
+        if plan_file.exists():
+            plan_file.unlink()
 
-            inferencer = PDDLInferencer(lore)
-            goal = inferencer.infer_goal()
-            actions = []
+        if not os.path.exists(domain_path) or not os.path.exists(problem_path):
+            print(f"❌ File PDDL mancanti:\n  ➤ {domain_path}\n  ➤ {problem_path}")
+            return None
 
-            main_char = lore.characters[0].strip()
-            target_char = lore.characters[1].strip() if len(lore.characters) > 1 else None
-            current_location = lore.locations[0].strip()
-            final_location = lore.locations[-1].strip()
+        # Esegui Fast Downward
+        result = subprocess.run(
+            [
+                "python", fd_script_path,
+                domain_path,
+                problem_path,
+                "--search", "astar(lmcut())"
+            ],
+            cwd=".",  # esecuzione da root progetto
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+            text=True
+        )
 
-            # Muovi verso le location successive
-            for loc in lore.locations[1:]:
-                actions.append(f"move {main_char} {loc.strip()}")
-                current_location = loc.strip()
+        if not plan_file.exists():
+            print("⚠️ Fast Downward non ha generato un piano.")
+            print("STDOUT:\n", result.stdout)
+            print("STDERR:\n", result.stderr)
+            return None
 
-            # Prendi tutti gli oggetti nella location finale
-            for item in lore.items or []:
-                actions.append(f"take {main_char} {item.strip()} {current_location}")
+        plan_lines = plan_file.read_text(encoding="utf-8").splitlines()
+        actions = [line.strip() for line in plan_lines if line and not line.startswith(";")]
 
-            # Rileva il verbo d'azione principale dal goal
-            action_verbs = inferencer.infer_actions()
-            main_action = None
-            for act in action_verbs:
-                match = re.search(r"\(:action\s+(\w+)", act)
-                if match:
-                    action_name = match.group(1)
-                    if action_name not in ["move", "take"]:
-                        main_action = action_name
-                        break
+        # Salva anche output/plan.txt
+        plan_txt = output_dir / "plan.txt"
+        plan_txt.write_text("\n".join(actions), encoding="utf-8")
 
-            if main_action and target_char:
-                weapon = lore.items[0].strip() if lore.items else "item"
-                actions.append(f"{main_action} {main_char} {target_char} {weapon} {current_location}")
-            elif lore.items:
-                actions.append(f"use {main_char} {lore.items[0].strip()} {current_location}")
-
-            # ✅ Restituisco il piano costruito
-            return actions
+        return actions if actions else None
 
     except Exception as e:
-        print("Errore planner:", e)
-
-    return None
-
+        print(f"❌ Errore durante esecuzione Fast Downward: {e}")
+        return None

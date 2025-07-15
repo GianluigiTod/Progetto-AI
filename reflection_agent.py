@@ -1,37 +1,31 @@
-# reflection_agent.py
+# reflection_agent_llm.py
 from typing import Dict, List
 from lore import LoreDocument
+from langchain_ollama import ChatOllama
+from langchain.prompts import ChatPromptTemplate
 
 class ReflectionAgent:
     def __init__(self):
-        pass  # In futuro si può collegare a un LLM
+        self.llm = ChatOllama(model="mistral")
 
     def analyze_pddl_errors(self, domain: str, problem: str, errors: List[str]) -> Dict[str, str]:
-        """
-        Analizza errori di parsing o logica nei file PDDL.
-        """
-        return {
-            "errors": "Errore di coerenza tra predicati",
-            "explanations": "Il predicato 'has' è usato ma non definito nel dominio",
-            "suggestions": "Aggiungi il predicato nel blocco (:predicates)",
-            "corrected_code": domain  # Per semplicità restituiamo il codice non modificato
-        }
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", "Aiuta a correggere errori nei file PDDL fornendo suggerimenti precisi."),
+            ("human", "DOMINIO:\n{domain}\n\nPROBLEMA:\n{problem}\n\nERRORI:\n{errors}\n\nSuggerisci come correggere.")
+        ])
+        response = prompt | self.llm
+        result = response.invoke({"domain": domain, "problem": problem, "errors": "\n".join(errors)}).content
+        return {"suggestions": result.strip()}
 
     def suggest_improvements(self, lore: LoreDocument, domain: str, problem: str) -> Dict[str, str]:
-        """
-        Suggerisce miglioramenti narrativi o strutturali se il planner fallisce.
-        """
-        suggestions = {}
-        if lore and lore.quest_description:
-            if "uccidere" in lore.quest_description.lower():
-                suggestions["narrative_improvements"] = "Inserire una missione secondaria per ottenere un'arma."
-                suggestions["pddl_modifications"] = "Aggiungere l'azione 'attack' e l'oggetto 'arma'."
-                suggestions["difficulty_balance"] = "Ridurre la forza del nemico nel dominio."
-                suggestions["world_enrichment"] = "Aggiungi luogo 'armeria'."
-            else:
-                suggestions["narrative_improvements"] = "Aggiungere un personaggio alleato."
-                suggestions["pddl_modifications"] = "Aggiungere l'azione 'join' e 'assist'."
-                suggestions["difficulty_balance"] = "Ridurre i passaggi obbligatori per l'obiettivo."
-                suggestions["world_enrichment"] = "Espandi la mappa con un nuovo villaggio."
-
-        return suggestions
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", "Suggerisci miglioramenti narrativi e strutturali basati sul lore e sui file PDDL."),
+            ("human", "Lore: {lore}\n\nDomain:\n{domain}\n\nProblem:\n{problem}\n\nSuggerimenti?")
+        ])
+        response = prompt | self.llm
+        result = response.invoke({
+            "lore": f"Descrizione: {lore.quest_description}\nContesto: {lore.world_context}",
+            "domain": domain,
+            "problem": problem
+        }).content
+        return {"suggestions": result.strip()}
