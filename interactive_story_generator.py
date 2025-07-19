@@ -4,11 +4,21 @@ from pddl_template_manager import PDDLTemplateManager
 from reflection_agent import ReflectionAgent
 from utils import write_to_file
 from validation import validate_pddl_syntax, run_fast_downward
+from online_llm_client import OnlineLLMClient
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # Carica le variabili da .env
+api_key = os.getenv("TOGETHER_API_KEY")
+
 
 class InteractiveStoryGenerator:
     def __init__(self):
+        self.llm = OnlineLLMClient(api_key=api_key)
+        print(f"🤖 Modello attivo: {self.llm.model}")
         self.template_manager = PDDLTemplateManager()
-        self.reflection_agent = ReflectionAgent()
+        self.reflection_agent = ReflectionAgent(self.llm)
         self.current_lore = None
         self.current_domain = None
         self.current_problem = None
@@ -33,12 +43,22 @@ class InteractiveStoryGenerator:
             items = ["sword", "map"]
             constr = []
 
-        self.current_lore = LoreDocument(desc, (bf_min, bf_max), (d_min, d_max), ctx, chars, locs, items, constr)
+        self.current_lore = LoreDocument(
+            quest_description=desc,
+            branching_factor=(bf_min, bf_max),
+            depth_constraints=(d_min, d_max),
+            world_context=ctx,
+            characters=chars,
+            locations=locs,
+            items=items,
+            constraints=constr
+        )
         return self.current_lore
 
     def generate_initial_pddl(self):
-        self.current_domain = self.template_manager.generate_domain(self.current_lore)
-        self.current_problem = self.template_manager.generate_problem(self.current_lore)
+        self.current_domain = self.template_manager.generate_domain(self.current_lore, self.llm)
+        self.current_problem = self.template_manager.generate_problem(self.current_lore, self.llm)
+
         write_to_file(self.current_domain, "domain.pddl")
         write_to_file(self.current_problem, "problem.pddl")
 

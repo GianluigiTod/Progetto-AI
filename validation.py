@@ -19,7 +19,7 @@ def run_fast_downward(domain_file: str, problem_file: str, timeout: int = 30, lo
 
     domain_path = os.path.abspath(domain_file)
     problem_path = os.path.abspath(problem_file)
-    fd_script_path = os.path.abspath(os.path.join("fast-downward", "fast-downward.py"))
+    fd_script_path = "C:/Users/Alessandro/fast_downward/downward/fast-downward.py"
 
     try:
         if plan_file.exists():
@@ -30,6 +30,8 @@ def run_fast_downward(domain_file: str, problem_file: str, timeout: int = 30, lo
             return None
 
         # Esegui Fast Downward
+        print(f"🔍 Eseguo Fast Downward da: {fd_script_path}")
+
         result = subprocess.run(
             [
                 "python", fd_script_path,
@@ -37,7 +39,7 @@ def run_fast_downward(domain_file: str, problem_file: str, timeout: int = 30, lo
                 problem_path,
                 "--search", "astar(lmcut())"
             ],
-            cwd=".",  # esecuzione da root progetto
+            cwd=".",
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             timeout=timeout,

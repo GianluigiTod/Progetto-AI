@@ -1,38 +1,44 @@
+from llm_interface import LLMInterface
 from pddl_inferencer import PDDLInferencer
 from lore import LoreDocument
+from pddl_syntax_repair_agent import PDDLSyntaxRepairAgent
+from llm_pddl_refiner import LLM_PDDLRefiner
+import re
 
 class PDDLTemplateManager:
-    def generate_domain(self, lore: LoreDocument) -> str:
-        inferencer = PDDLInferencer(lore)
-        predicates = inferencer.infer_predicates()
-        actions = inferencer.infer_actions()
+    def __init__(self):
+        self.repairer = PDDLSyntaxRepairAgent()
+
+    def generate_domain(self, lore: LoreDocument, llm: LLMInterface) -> str:
+        inferencer = PDDLInferencer(lore, llm)
+        llm_refiner = LLM_PDDLRefiner(llm)
+
+        raw_predicates = inferencer.infer_predicates()
+        predicates = llm_refiner.refine_predicates(raw_predicates)
 
         def valid_predicate(p: str) -> bool:
-            # Il predicato deve contenere variabili e parentesi bilanciate
-            if '?' not in p:
-                return False
-            if not (p.startswith('(') and p.endswith(')')):
-                return False
-            return True
+            return '?' in p and p.startswith('(') and p.endswith(')')
 
         sanitized_preds = [p for p in predicates if valid_predicate(p)]
 
-        # Predicati essenziali con corretta sintassi
         essential_preds = {
             "(at ?x - character ?l - location)",
             "(alive ?x - character)",
             "(connected ?from - location ?to - location)"
         }
 
-        # Unisci evitando duplicati
         all_preds = list(set(sanitized_preds).union(essential_preds))
-
         pred_block = "\n    ".join(sorted(all_preds))
-        action_block = "\n\n  ".join(actions)
 
-        return f"""(define (domain generated_domain)
+        actions = inferencer.infer_actions()
+        repaired_actions = self.repairer.repair_actions(actions)
+        action_block = "\n\n  ".join(repaired_actions)
+
+        domain_template = f"""
+(define (domain generated_domain)
   (:requirements :strips :typing)
-  (:types character location item - object)
+  (:types character location item)
+
   (:predicates
     {pred_block}
   )
@@ -40,20 +46,21 @@ class PDDLTemplateManager:
   {action_block}
 )
 """
+        return domain_template.strip()
 
-    def generate_problem(self, lore: LoreDocument) -> str:
-        inferencer = PDDLInferencer(lore)
+    def generate_problem(self, lore: LoreDocument, llm: LLMInterface) -> str:
+        inferencer = PDDLInferencer(lore, llm)
+        llm_refiner = LLM_PDDLRefiner(llm)
+
         goal = inferencer.infer_goal()
+        goal = self.repairer.repair_goal(goal)
 
-        # Sostituisci eventuali predicati non definiti come 'present' con 'at'
-        goal = goal.replace("present", "at")
+        # Se contiene parole italiane sospette, usa il raffinatore LLM
+        if any(k in goal.lower() for k in ["presente", "trovare", "posizionato"]):
+            goal = llm_refiner.refine_goal(goal, [
+                "at", "alive", "connected", "has", "in_camp", "in_forest", "in_village", "saved_village"
+            ])
 
-        # Assicura che il goal sia racchiuso in (and ...)
-        goal = goal.strip()
-        if not goal.startswith("(and"):
-            goal = f"(and {goal})"
-
-        # Oggetti senza '?', con tipi specificati dopo la lista
         characters = " ".join(c.strip() for c in lore.characters)
         items = " ".join(i.strip() for i in lore.items)
         locations = " ".join(l.strip() for l in lore.locations)
@@ -78,7 +85,8 @@ class PDDLTemplateManager:
 
         init_block = "\n    ".join(init_lines)
 
-        return f"""(define (problem generated_problem)
+        problem_template = f"""
+(define (problem generated_problem)
   (:domain generated_domain)
   (:objects
     {characters} - character
@@ -88,6 +96,9 @@ class PDDLTemplateManager:
   (:init
     {init_block}
   )
-  (:goal {goal})
+  (:goal
+    {goal}
+  )
 )
 """
+        return problem_template.strip()

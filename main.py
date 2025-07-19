@@ -1,5 +1,5 @@
 # main.py
-from story_generator import InteractiveStoryGenerator
+from interactive_story_generator import InteractiveStoryGenerator
 
 def main():
     print("\U0001F3AE GENERATORE INTERATTIVO DI STORIE PDDL")

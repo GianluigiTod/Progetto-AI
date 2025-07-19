@@ -16,5 +16,7 @@
     (connected camp forest)
     (alive hero)
   )
-  (:goal (and (not (at ?char_bandit_leader - character ?loc_village - location)) ))
+  (:goal
+    (and (not (alive bandit_leader)) (at hero village))
+  )
 )
