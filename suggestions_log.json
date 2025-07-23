@@ -1,0 +1,15 @@
+[
+  "Rimosso blocco :objects dal dominio, poich\u00e9 gli oggetti devono essere definiti solo nel problema.",
+  "Corretto il nome del dominio nel problema da 'quest_domain' a 'fantasy-world'.",
+  "Rimosso il predicato '(has dragon amulet)' dall'inizializzazione del problema, poich\u00e9 non \u00e8 necessario per il dominio attuale.",
+  "Aggiunto tipo per gli oggetti nel dominio",
+  "Aggiunto tipo per le posizioni nel dominio",
+  "Aggiornati i parametri delle azioni per includere i tipi",
+  "Aggiunta condizione di tipo per i parametri delle azioni",
+  "Aggiunto tipo per gli oggetti nel problema",
+  "Corretto il predicato 'location' per distinguere tra entit\u00e0 e posizioni",
+  "Aggiunto predicato 'at' per indicare la posizione di un'entit\u00e0",
+  "Modificato il dominio per utilizzare il predicato 'at' invece di 'location'",
+  "Aggiornato il problema per utilizzare il predicato 'at'",
+  "Rimosso il parametro 'entity' dal tipo 'location' nel predicato 'location'"
+]
