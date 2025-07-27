@@ -37,18 +37,23 @@ Il cavaliere deve recuperare l'amuleto e sconfiggere il drago.
         print("⚠️ Scelta non valida. Uscita.")
         return
 
-    # Impostiamo lo stato iniziale
+    # Salva la storia in un file
+    with open("last_lore.txt", "w", encoding="utf-8") as out_file:
+        out_file.write(lore_text)
+    print("📚 La storia è stata salvata in 'last_lore.txt'.")
+
+    # Stato iniziale
     initial_state = {
         "lore_raw": lore_text,
         "iteration": 0,
         "suggestions": []
     }
 
-    # Eseguiamo il grafo
+    # Esecuzione del grafo
     graph = build_graph()
     final_state = graph.invoke(initial_state)
 
-    # Opzione debug
+    # Opzione per debug
     print("\n🪪 Vuoi stampare lo stato finale? (debug)")
     debug = input("→ (s/n): ").strip().lower()
     if debug == "s":

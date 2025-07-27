@@ -1,50 +1,39 @@
 (define (domain fantasy-world)
 
-  ;; Definizione dei tipi
-  (:types
-    entity location
+  ;; Definizione degli oggetti nel dominio
+  (:constants
+    forcone ; Costante per il forcone
   )
 
   ;; Definizione dei predicati
   (:predicates
-    (location ?x - entity ?y - entity) ;; L'oggetto ?x si trova nella posizione ?y
-    (at ?x - entity ?y - location) ;; L'entità ?x si trova nella posizione ?y
-    (has ?x - entity ?y - entity) ;; L'oggetto ?x possiede l'oggetto ?y
-    (defeated ?x - entity) ;; La creatura ?x è stata sconfitta
+    (has-player ?item) ;; Il giocatore possiede un oggetto
+    (is-dragon) ;; Lo stato del drago (es. fire-breathing)
+    (dragon-dead) ;; Il drago è morto
+    (player-near-dragon) ;; Il giocatore è vicino al drago
   )
 
-  ;; Azione: Spostare il cavaliere da una posizione all'altra
-  (:action move
-    :parameters (?from - location ?to - location)
-    :precondition (and (at knight ?from))
-    :effect (and (not (at knight ?from))
-                 (at knight ?to))
-    ;; Il cavaliere si sposta da ?from a ?to
-  )
-
-  ;; Azione: Combattere il drago
-  (:action fight-dragon
+  ;; Azione: Avvicinarsi al drago
+  (:action approach-dragon
     :parameters ()
-    :precondition (and (at knight cave) (at dragon cave) (not (defeated dragon)))
-    :effect (defeated dragon)
-    ;; Il cavaliere sconfigge il drago nella caverna
+    :precondition (and (has-player forcone) (is-dragon))
+    :effect (player-near-dragon)
+    ;; Il giocatore si avvicina al drago solo se ha il forcone e il drago è in grado di sputare fuoco
   )
 
-  ;; Azione: Prendere l'amuleto
-  (:action take-amulet
+  ;; Azione: Usare il forcone sul drago
+  (:action use-pitchfork
     :parameters ()
-    :precondition (and (at knight cave) (location amulet cave) (defeated dragon))
-    :effect (and (not (location amulet cave))
-                 (has knight amulet))
-    ;; Il cavaliere prende l'amuleto dalla caverna dopo aver sconfitto il drago
+    :precondition (and (has-player forcone) (player-near-dragon))
+    :effect (and (not (is-dragon)) (dragon-dead))
+    ;; Il giocatore usa il forcone sul drago, spegnendo il suo fuoco e uccidendolo
   )
 
-  ;; Azione: Spostare il drago da una posizione all'altra (opzionale)
-  (:action move-dragon
-    :parameters (?from - location ?to - location)
-    :precondition (and (at dragon ?from) (not (defeated dragon)))
-    :effect (and (not (at dragon ?from))
-                 (at dragon ?to))
-    ;; Il drago si sposta da ?from a ?to
+  ;; Azione: Fuggire dal drago
+  (:action flee-from-dragon
+    :parameters ()
+    :precondition (and (is-dragon) (not (player-near-dragon)))
+    :effect (not (player-near-dragon))
+    ;; Il giocatore fugge dal drago se non è già vicino e il drago è ancora in grado di sputare fuoco
   )
 )

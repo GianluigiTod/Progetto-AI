@@ -4,7 +4,7 @@ from utils.ask_openai import ask_openai
 from utils.json_tools import clean_json_output
 
 def reflection_agent(state):
-    # 🔍 1. Salva i PDDL falliti prima del refinement
+    # 🔍 1. Salvataggio dei PDDL falliti prima del refinement
     if state.get("debug", False):
         with open("failed_domain_before_reflection.pddl", "w", encoding="utf-8") as f:
             f.write(state["domain_pddl"])
@@ -16,7 +16,7 @@ def reflection_agent(state):
     system, user = get_prompt(state)
     result = ask_openai(system, user)
 
-    # 🧹 3. Pulisci output del modello (può essere in ```json```)
+    # 🧹 3. Pulizia degli output del modello 
     result_cleaned = clean_json_output(result)
 
     if not result_cleaned:

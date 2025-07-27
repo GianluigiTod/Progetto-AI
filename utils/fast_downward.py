@@ -2,11 +2,10 @@ import subprocess
 import tempfile
 import os
 
-def validate_with_fast_downward(domain_pddl: str, problem_pddl: str, debug=False) -> bool:
+def validate_with_fast_downward(domain_pddl: str, problem_pddl: str, debug=False):
     with tempfile.TemporaryDirectory() as tmpdir:
         domain_path = os.path.join(tmpdir, "domain.pddl")
         problem_path = os.path.join(tmpdir, "problem.pddl")
-        plan_path = os.path.join(tmpdir, "sas_plan")
 
         with open(domain_path, "w") as f:
             f.write(domain_pddl)
@@ -17,28 +16,35 @@ def validate_with_fast_downward(domain_pddl: str, problem_pddl: str, debug=False
             result = subprocess.run(
                 [
                     "python",
-                    "C:\\Users\\Alessandro\\fast_downward\\downward\\fast-downward.py",
+                    "C:\\Users\\Salva\\downward\\fast-downward.py",
                     domain_path,
                     problem_path,
-                    "--search", f"astar(blind())"
+                    "--search", "astar(blind())"
                 ],
                 capture_output=True,
                 text=True,
-                timeout=15
+                timeout=30
             )
 
-            if debug:
-                print("📤 Fast Downward output:\n", result.stdout)
+            if debug or True:
+                print("📤 STDOUT:\n", result.stdout)
+                print("❌ STDERR:\n", result.stderr)
 
-            # Se il planner ha trovato una soluzione, copia il piano
-            if "Solution found!" in result.stdout:
-                final_plan_path = os.path.join(os.getcwd(), "plan.txt")
-                if os.path.exists(plan_path):
-                    with open(plan_path, "r") as src, open(final_plan_path, "w") as dst:
-                        dst.write(src.read())
-                return True
+            # Cerca il file del piano nella cartella corrente
+            plan_file_path = os.path.join(os.getcwd(), "sas_plan")
+            if os.path.exists(plan_file_path):
+                with open(plan_file_path, "r") as f:
+                    lines = f.readlines()
+
+                plan = [line.strip() for line in lines if line.strip() and not line.startswith(";")]
+
+                # Salva il piano come "generated_plan.txt"
+                with open("generated_plan.txt", "w") as f_out:
+                    f_out.write("\n".join(plan))
+
+                return True, plan
 
         except Exception as e:
-            print("❌ Errore planner:", e)
+            print("❌ Errore durante l'esecuzione di Fast Downward:", e)
 
-        return False
+        return False, []

@@ -61,5 +61,5 @@ def generate_fallback_pddl(state):
         "domain_pddl": fallback_domain,
         "problem_pddl": fallback_problem,
         "suggestions": state.get("suggestions", []) + ["Fallback attivato: generati file PDDL standard."],
-        "plan_valido": True  # simuliamo successo per forzare uscita
+        "plan_valido": True  # simula il successo per forzare l'uscita
     }
